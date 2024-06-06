@@ -19,7 +19,7 @@ public class ChipFrame extends JFrame {
         setLayout(new BorderLayout());
         add(panel, BorderLayout.CENTER);
         setDefaultCloseOperation(EXIT_ON_CLOSE);
-        setTitle("Chip8 Emulator");
+        setTitle("Chip-8 Emulator");
         pack();
         setVisible(true);
     }
