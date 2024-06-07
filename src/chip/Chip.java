@@ -50,6 +50,8 @@ public class Chip {
         display = new byte[64 * 32];
 
         needRedraw = false;
+
+        loadFontset();
     }
     public void run() {
         //fetches opcode
