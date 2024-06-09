@@ -72,18 +72,19 @@ public class Chip {
             case 0x3000: //3XNN: Skips the next instruction if VX equals NN
                 break;
 
-            case 0x6000: //6XNN: Set VX to NN
+            case 0x6000: {//6XNN: Set VX to NN
                 int x = (opcode & 0x0F00) >> 8;
-                V[x] = (char)(opcode & 0x00FF);
+                V[x] = (char) (opcode & 0x00FF);
                 programCounter += 2;
                 break;
-
-            case 0x7000: //7XNN: Adds NN to VX
-                int _x = (opcode & 0x0F00) >> 8;
+            }
+            case 0x7000: {//7XNN: Adds NN to VX
+                int x = (opcode & 0x0F00) >> 8;
                 int nn = (opcode & 0x00FF);
-                V[_x] = (char)((V[_x] + nn) & 0xFF);
+                V[x] = (char) ((V[x] + nn) & 0xFF);
+                programCounter += 2;
                 break;
-
+            }
             case 0x8000: //Contains more data in last nibble
 
                 switch(opcode & 0x000F) {
@@ -102,10 +103,35 @@ public class Chip {
                 programCounter += 2;
                 break;
 
-            case 0xD000: //DXYN: Draw a sprite (X, Y) size (8, N). Sprite is located at I
-                programCounter += 2;
-                break;
+            case 0xD000: {//DXYN: Draw a sprite (X, Y) size (8, N). Sprite is located at I
+                int x = V[(opcode & 0x0F00) >> 8];
+                int y = V[(opcode & 0x00F0) >> 4];
+                int height = opcode & 0x000F;
+                V[0xF] = 0;
 
+                for(int _y = 0; _y < height; _y++) {
+                    int line = memory[I + _y];
+                    for(int _x = 0; _x < 8; _x++) {
+                        int pixel = line & (0x80 >> _x);
+                        if(pixel != 0) {
+                            int totalX = x + _x;
+                            int totalY = y + _y;
+                            int index = totalY * 64 + totalX;
+
+                            if(display[index] == 1) {
+                                V[0xF] = 1;
+                            }
+
+                            display[index] ^= 1; // ^= is XOR
+                        }
+                    }
+                }
+                programCounter += 2;
+
+                needRedraw = true;
+
+                break;
+            }
             default:
                 System.err.println("Unsupported Opcode!");
                 System.exit(0);
