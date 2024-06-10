@@ -7,6 +7,7 @@ import java.awt.*;
 
 public class ChipPanel extends JPanel {
 
+    private static final long serialVersionUID = 1L;
     private Chip chip;
 
     public ChipPanel(Chip chip) {

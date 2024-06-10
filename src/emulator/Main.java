@@ -18,6 +18,7 @@ public class Main extends Thread{
     // chip-8 runs at 60 fps/60 hZ
     public void run() {
         while (true) {
+            chip8.setKeyBuffer(frame.getKeyBuffer());
             chip8.run();
             if (chip8.needsRedraw()) {
                 frame.repaint();
