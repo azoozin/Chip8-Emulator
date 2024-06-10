@@ -135,6 +135,14 @@ public class Chip {
 
                 switch (opcode & 0x000F) {
 
+                    case 0x0000: {
+                        int x = (opcode & 0x0F00) >> 8;
+                        int y = (opcode & 0x00F0) >> 4;
+                        V[x] = V[y];
+                        programCounter += 2;
+                        break;
+                    }
+
                     case 0x0002: {
                         int x = (opcode & 0x0F00) >> 8;
                         int y = (opcode & 0x00F0) >> 4;
@@ -152,6 +160,19 @@ public class Chip {
                             V[0xF] = 0;
                         }
                         V[x] = (char) ((V[x] + V[y]) & 0xFF);
+                        programCounter += 2;
+                        break;
+                    }
+
+                    case 0x0005: {
+                        int x = (opcode & 0x0F00) >> 8;
+                        int y = (opcode & 0x00F0) >> 4;
+                        if(V[x] > V[y]) {
+                            V[0xF] = 1;
+                        } else {
+                            V[0xF] = 0;
+                        }
+                        V[x] = (char)((V[x] - V[y]) & 0xFF);
                         programCounter += 2;
                         break;
                     }
@@ -254,6 +275,13 @@ public class Chip {
 //                        break;
                     }
 
+                    case 0x0018: {
+                        int x = (opcode & 0x0F00) >> 8;
+                        soundTimer = V[x];
+                        programCounter += 2;
+                        break;
+                    }
+
                     case 0x0029: {
                         int x = (opcode & 0x0F00) >> 8;
                         int character = V[x];
@@ -311,6 +339,13 @@ public class Chip {
             default:
                 System.err.println("Unsupported Opcode!");
                 System.exit(0);
+        }
+
+        if(soundTimer > 0) {
+            soundTimer--;
+        }
+        if(delayTimer > 0) {
+            delayTimer--;
         }
     }
 
