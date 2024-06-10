@@ -60,18 +60,48 @@ public class Chip {
         //decodes the operation code
         switch(opcode & 0xF000) {
 
-            case 0x1000: //1NNN: Jumps to address NNN
+            case 0x0000: // Multi case
+                switch(opcode & 0x00FF) {
+                    case 0x00E0:
+                        System.err.println("Unsupported operation code.");
+                        System.exit(0);
+                        break;
+
+                    case 0x00EE:
+//                        System.err.println("Unsupported operation code.");
+//                        System.exit(0);
+                        stackPointer--;
+                        programCounter = (char)(stack[stackPointer] + 2);
+                        break;
+
+                    default:
+                        System.err.println("Unsupported operation code.");
+                        System.exit(0);
+                        break;
+                }
                 break;
 
+            case 0x1000: {//1NNN: Jumps to address NNN
+                int nnn = opcode & 0x0FFF;
+                programCounter = (char)nnn;
+                break;
+            }
             case 0x2000: //2NNN: Calls subroutine at NNN
                 stack[stackPointer] = programCounter;
                 stackPointer++;
                 programCounter = (char)(opcode & 0x0FFF);
                 break;
 
-            case 0x3000: //3XNN: Skips the next instruction if VX equals NN
+            case 0x3000: {//3XNN: Skips the next instruction if VX equals NN
+                int x = (opcode & 0x0F00) >> 8;
+                int nn = (opcode & 0x00FF);
+                if(V[x] == nn) {
+                    programCounter += 4;
+                } else {
+                    programCounter += 2;
+                }
                 break;
-
+            }
             case 0x6000: {//6XNN: Set VX to NN
                 int x = (opcode & 0x0F00) >> 8;
                 V[x] = (char) (opcode & 0x00FF);
@@ -132,6 +162,52 @@ public class Chip {
 
                 break;
             }
+
+            case 0xF000:
+                switch(opcode & 0x00FF) {
+
+                    case 0x0029: {
+                        int x = (opcode & 0x0F00) >> 8;
+                        int character = V[x];
+                        I = (char)(0x050 + (character * 5));
+
+                        programCounter += 2;
+                        break;
+                    }
+
+                    case 0x0033: {
+                        int x = (opcode & 0x0F00) >> 8;
+                        int value = V[x];
+
+                        int hundred = (value - (value % 100)) / 100; // value should be 1
+                        value -= hundred * 100; // subtract hundreds to simplify calculation
+                        int ten = (value - (value % 10)) / 10;
+                        value -= ten * 10; // subtract tens to simplify calculation
+                        int one = 6;
+                        memory[I] = (char)hundred;
+                        memory[I + 1] = (char)ten;
+                        memory[I + 2] = (char)one;
+
+                        programCounter += 2;
+                        break;
+                    }
+
+                    case 0x065: {
+                        int x = (opcode & 0x0F00) >> 8;
+                        for(int i = 0; i < x; i++) {
+                            V[i] = memory[I + 1];
+                        }
+
+                        programCounter += 2;
+                       break;
+                    }
+
+                    default:
+                        System.err.println("Unsupported Opcode!");
+                        System.exit(0);
+                }
+                break;
+
             default:
                 System.err.println("Unsupported Opcode!");
                 System.exit(0);
