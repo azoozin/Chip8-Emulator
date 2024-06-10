@@ -166,6 +166,18 @@ public class Chip {
             case 0xF000:
                 switch(opcode & 0x00FF) {
 
+                    case 0x0007: {
+
+                        break;
+                    }
+
+                    case 0x0015: {
+                        int x = (opcode & 0x0F00) >> 8;
+                        delayTimer = V[x];
+                        programCounter += 2;
+                        break;
+                    }
+
                     case 0x0029: {
                         int x = (opcode & 0x0F00) >> 8;
                         int character = V[x];
