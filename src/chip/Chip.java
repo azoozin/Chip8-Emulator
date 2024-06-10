@@ -54,15 +54,16 @@ public class Chip {
 
         loadFontset();
     }
+
     public void run() {
         //fetches opcode
-        char opcode = (char)((memory[programCounter] << 8) | memory[programCounter + 1]);
+        char opcode = (char) ((memory[programCounter] << 8) | memory[programCounter + 1]);
         System.out.print(Integer.toHexString(opcode) + ": ");
         //decodes the operation code
-        switch(opcode & 0xF000) {
+        switch (opcode & 0xF000) {
 
             case 0x0000: // Multi case
-                switch(opcode & 0x00FF) {
+                switch (opcode & 0x00FF) {
                     case 0x00E0:
                         System.err.println("Unsupported operation code.");
                         System.exit(0);
@@ -96,19 +97,32 @@ public class Chip {
             case 0x3000: {//3XNN: Skips the next instruction if VX equals NN
                 int x = (opcode & 0x0F00) >> 8;
                 int nn = (opcode & 0x00FF);
-                if(V[x] == nn) {
+                if (V[x] == nn) {
                     programCounter += 4;
                 } else {
                     programCounter += 2;
                 }
                 break;
             }
+
+            case 0x4000: {
+                int x = (opcode & 0x0F00) >> 8;
+                int nn = opcode & 0x00FF;
+                if (V[x] != nn) {
+                    programCounter += 4;
+                } else {
+                    programCounter += 2;
+                }
+                break;
+            }
+
             case 0x6000: {//6XNN: Set VX to NN
                 int x = (opcode & 0x0F00) >> 8;
                 V[x] = (char) (opcode & 0x00FF);
                 programCounter += 2;
                 break;
             }
+
             case 0x7000: {//7XNN: Adds NN to VX
                 int x = (opcode & 0x0F00) >> 8;
                 int nn = (opcode & 0x00FF);
@@ -116,49 +130,69 @@ public class Chip {
                 programCounter += 2;
                 break;
             }
+
             case 0x8000: //Contains more data in last nibble
 
-                switch(opcode & 0x000F) {
+                switch (opcode & 0x000F) {
 
-                    case 0x0000: //8XY0: Sets VX to the value of VY.
+                    case 0x0002: {
+                        int x = (opcode & 0x0F00) >> 8;
+                        int y = (opcode & 0x00F0) >> 4;
+                        V[x] = (char)(V[x] & V[y]);
+                        programCounter += 2;
+                        break;
+                    }
+
+                    case 0x0004: {
+                        int x = (opcode & 0x0F00) >> 8;
+                        int y = (opcode & 0x00F0) >> 4;
+                        if (V[y] > 0xFF - V[x]) {
+                            V[0xF] = 1;
+                        } else {
+                            V[0xF] = 0;
+                        }
+                        V[x] = (char) ((V[x] + V[y]) & 0xFF);
+                        programCounter += 2;
+                        break;
+                    }
+//                    case 0x0000:
                     default:
                         System.err.println("Unsupported Opcode!");
                         System.exit(0);
                         break;
                 }
-
                 break;
 
-            case 0xA000: //ANNN: Set I to NNN
-                I = (char)(opcode & 0x0FFF);
+            case 0xA000:
+                I = (char) (opcode & 0x0FFF);
                 programCounter += 2;
                 break;
 
             case 0xC000: {
                 int x = (opcode & 0x0F00) >> 8;
                 int nn = (opcode & 0x00FF);
-                int randomNum = new Random().nextInt(256) & nn;
-                V[x] = (char)randomNum;
+                int randomNum = new Random().nextInt(255) & nn;
+                V[x] = (char) randomNum;
                 programCounter += 2;
-//                break;
+                break;
             }
 
-            case 0xD000: {//DXYN: Draw a sprite (X, Y) size (8, N). Sprite is located at I
+            case 0xD000: {
                 int x = V[(opcode & 0x0F00) >> 8];
                 int y = V[(opcode & 0x00F0) >> 4];
                 int height = opcode & 0x000F;
                 V[0xF] = 0;
 
-                for(int _y = 0; _y < height; _y++) {
+                for (int _y = 0; _y < height; _y++) {
                     int line = memory[I + _y];
-                    for(int _x = 0; _x < 8; _x++) {
+                    for (int _x = 0; _x < 8; _x++) {
                         int pixel = line & (0x80 >> _x);
-                        if(pixel != 0) {
+                        if (pixel != 0) {
                             int totalX = x + _x;
                             int totalY = y + _y;
                             int index = totalY * 64 + totalX;
 
-                            if(display[index] == 1) {
+                            if (display[index] == 1) {
                                 V[0xF] = 1;
                             }
 
@@ -174,9 +208,10 @@ public class Chip {
             }
 
             case 0xE000: {
-                switch(opcode & 0x00FF) {
+                switch (opcode & 0x00FF) {
                     case 0x009E: {
-                        int key = (opcode & 0x0F00) >> 8;
+                        int x = (opcode & 0x0F00) >> 8;
+                        int key = V[x];
                         if (keys[key] == 1) {
                             programCounter += 4;
                         } else {
@@ -186,7 +221,8 @@ public class Chip {
                     }
 
                     case 0x00A1: {
-                        int key = (opcode & 0x0F00) >> 8;
+                        int x = (opcode & 0x0F00) >> 8;
+                        int key = V[x];
                         if (keys[key] == 0) {
                             programCounter += 4;
                         } else {
@@ -198,14 +234,15 @@ public class Chip {
                         System.err.println("Unsupported Opcode!");
                         System.exit(0);
                 }
+                break;
             }
 
             case 0xF000:
-                switch(opcode & 0x00FF) {
+                switch (opcode & 0x00FF) {
 
                     case 0x0007: {
                         int x = (opcode & 0x0F00) >> 8;
-                        V[x] = (char)delayTimer;
+                        V[x] = (char) delayTimer;
                         programCounter += 2;
 //                        break;
                     }
@@ -229,28 +266,40 @@ public class Chip {
                     case 0x0033: {
                         int x = (opcode & 0x0F00) >> 8;
                         int value = V[x];
-
-                        int hundred = (value - (value % 100)) / 100; // value should be 1
-                        value -= hundred * 100; // subtract hundreds to simplify calculation
-                        int ten = (value - (value % 10)) / 10;
-                        value -= ten * 10; // subtract tens to simplify calculation
-                        int one = 6;
-                        memory[I] = (char)hundred;
-                        memory[I + 1] = (char)ten;
-                        memory[I + 2] = (char)one;
-
+                        int hundreds = (value - (value % 100)) / 100;
+                        value -= hundreds * 100;
+                        int tens = (value - (value % 10))/ 10;
+                        value -= tens * 10;
+                        memory[I] = (char)hundreds;
+                        memory[I + 1] = (char)tens;
+                        memory[I + 2] = (char)value;
+                        System.out.println("Storing Binary-Coded Decimal V[" + x + "] = " + (int)(V[(opcode & 0x0F00) >> 8]) + " as { " + hundreds+ ", " + tens + ", " + value + "}");
                         programCounter += 2;
                         break;
+//                        int x = (opcode & 0x0F00) >> 8;
+//                        int value = V[x];
+//
+//                        int hundred = (value - (value % 100)) / 100; // value should be 1
+//                        value -= hundred * 100; // subtract hundreds to simplify calculation
+//                        int ten = (value - (value % 10)) / 10;
+//                        value -= ten * 10; // subtract tens to simplify calculation
+//                        int one = 6;
+//                        memory[I] = (char) hundred;
+//                        memory[I + 1] = (char) ten;
+//                        memory[I + 2] = (char) one;
+//
+//                        programCounter += 2;
+//                        break;
                     }
 
                     case 0x065: {
                         int x = (opcode & 0x0F00) >> 8;
-                        for(int i = 0; i < x; i++) {
+                        for (int i = 0; i < x; i++) {
                             V[i] = memory[I + 1];
                         }
-
+                        I = (char) (I + x + 1);
                         programCounter += 2;
-                       break;
+                        break;
                     }
 
                     default:
@@ -277,14 +326,14 @@ public class Chip {
         needRedraw = false;
     }
 
-    public void  loadProgram(String file) {
+    public void loadProgram(String file) {
         DataInputStream input = null;
         try {
-             input = new DataInputStream(new FileInputStream(new File(file)));
+            input = new DataInputStream(new FileInputStream(new File(file)));
 
             int offset = 0;
             while (input.available() > 0) {
-                memory[0x200 + offset] = (char)(input.readByte() & 0xFF);
+                memory[0x200 + offset] = (char) (input.readByte() & 0xFF);
                 offset++;
             }
         } catch (IOException e) {
@@ -302,14 +351,14 @@ public class Chip {
     }
 
     public void loadFontset() {
-        for(int i = 0; i < ChipData.fontset.length; i++) {
-            memory[0x50 + i] = (char)(ChipData.fontset[i] & 0xFF);
+        for (int i = 0; i < ChipData.fontset.length; i++) {
+            memory[0x50 + i] = (char) (ChipData.fontset[i] & 0xFF);
         }
     }
 
     public void setKeyBuffer(int[] keyBuffer) {
-        for(int i = 0; i < keys.length; i++) {
-            keys[i] = (byte)keyBuffer[i];
+        for (int i = 0; i < keys.length; i++) {
+            keys[i] = (byte) keyBuffer[i];
         }
     }
 }
