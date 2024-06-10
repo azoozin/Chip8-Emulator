@@ -4,6 +4,7 @@ import java.io.DataInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.util.Random;
 
 public class Chip {
 
@@ -133,6 +134,15 @@ public class Chip {
                 programCounter += 2;
                 break;
 
+            case 0xC000: {
+                int x = (opcode & 0x0F00) >> 8;
+                int nn = (opcode & 0x00FF);
+                int randomNum = new Random().nextInt(256) & nn;
+                V[x] = (char)randomNum;
+                programCounter += 2;
+//                break;
+            }
+
             case 0xD000: {//DXYN: Draw a sprite (X, Y) size (8, N). Sprite is located at I
                 int x = V[(opcode & 0x0F00) >> 8];
                 int y = V[(opcode & 0x00F0) >> 4];
@@ -163,19 +173,48 @@ public class Chip {
                 break;
             }
 
+            case 0xE000: {
+                switch(opcode & 0x00FF) {
+                    case 0x009E: {
+                        int key = (opcode & 0x0F00) >> 8;
+                        if (keys[key] == 1) {
+                            programCounter += 4;
+                        } else {
+                            programCounter += 2;
+                        }
+                        break;
+                    }
+
+                    case 0x00A1: {
+                        int key = (opcode & 0x0F00) >> 8;
+                        if (keys[key] == 0) {
+                            programCounter += 4;
+                        } else {
+                            programCounter += 2;
+                        }
+                        break;
+                    }
+                    default:
+                        System.err.println("Unsupported Opcode!");
+                        System.exit(0);
+                }
+            }
+
             case 0xF000:
                 switch(opcode & 0x00FF) {
 
                     case 0x0007: {
-
-                        break;
+                        int x = (opcode & 0x0F00) >> 8;
+                        V[x] = (char)delayTimer;
+                        programCounter += 2;
+//                        break;
                     }
 
                     case 0x0015: {
                         int x = (opcode & 0x0F00) >> 8;
                         delayTimer = V[x];
                         programCounter += 2;
-                        break;
+//                        break;
                     }
 
                     case 0x0029: {
