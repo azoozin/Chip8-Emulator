@@ -73,7 +73,7 @@ public class Chip {
 //                        System.err.println("Unsupported operation code.");
 //                        System.exit(0);
                         stackPointer--;
-                        programCounter = (char)(stack[stackPointer] + 2);
+                        programCounter = (char) (stack[stackPointer] + 2);
                         break;
 
                     default:
@@ -85,13 +85,13 @@ public class Chip {
 
             case 0x1000: {//1NNN: Jumps to address NNN
                 int nnn = opcode & 0x0FFF;
-                programCounter = (char)nnn;
+                programCounter = (char) nnn;
                 break;
             }
             case 0x2000: //2NNN: Calls subroutine at NNN
                 stack[stackPointer] = programCounter;
                 stackPointer++;
-                programCounter = (char)(opcode & 0x0FFF);
+                programCounter = (char) (opcode & 0x0FFF);
                 break;
 
             case 0x3000: {//3XNN: Skips the next instruction if VX equals NN
@@ -146,7 +146,7 @@ public class Chip {
                     case 0x0002: {
                         int x = (opcode & 0x0F00) >> 8;
                         int y = (opcode & 0x00F0) >> 4;
-                        V[x] = (char)(V[x] & V[y]);
+                        V[x] = (char) (V[x] & V[y]);
                         programCounter += 2;
                         break;
                     }
@@ -167,12 +167,12 @@ public class Chip {
                     case 0x0005: {
                         int x = (opcode & 0x0F00) >> 8;
                         int y = (opcode & 0x00F0) >> 4;
-                        if(V[x] > V[y]) {
+                        if (V[x] > V[y]) {
                             V[0xF] = 1;
                         } else {
                             V[0xF] = 0;
                         }
-                        V[x] = (char)((V[x] - V[y]) & 0xFF);
+                        V[x] = (char) ((V[x] - V[y]) & 0xFF);
                         programCounter += 2;
                         break;
                     }
@@ -285,7 +285,7 @@ public class Chip {
                     case 0x0029: {
                         int x = (opcode & 0x0F00) >> 8;
                         int character = V[x];
-                        I = (char)(0x050 + (character * 5));
+                        I = (char) (0x050 + (character * 5));
 
                         programCounter += 2;
                         break;
@@ -296,12 +296,12 @@ public class Chip {
                         int value = V[x];
                         int hundreds = (value - (value % 100)) / 100;
                         value -= hundreds * 100;
-                        int tens = (value - (value % 10))/ 10;
+                        int tens = (value - (value % 10)) / 10;
                         value -= tens * 10;
-                        memory[I] = (char)hundreds;
-                        memory[I + 1] = (char)tens;
-                        memory[I + 2] = (char)value;
-                        System.out.println("Storing Binary-Coded Decimal V[" + x + "] = " + (int)(V[(opcode & 0x0F00) >> 8]) + " as { " + hundreds+ ", " + tens + ", " + value + "}");
+                        memory[I] = (char) hundreds;
+                        memory[I + 1] = (char) tens;
+                        memory[I + 2] = (char) value;
+                        System.out.println("Storing Binary-Coded Decimal V[" + x + "] = " + (int) (V[(opcode & 0x0F00) >> 8]) + " as { " + hundreds + ", " + tens + ", " + value + "}");
                         programCounter += 2;
                         break;
 //                        int x = (opcode & 0x0F00) >> 8;
@@ -322,8 +322,8 @@ public class Chip {
 
                     case 0x065: {
                         int x = (opcode & 0x0F00) >> 8;
-                        for (int i = 0; i < x; i++) {
-                            V[i] = memory[I + 1];
+                        for (int i = 0; i <= x; i++) {
+                            V[i] = memory[I + i];
                         }
                         I = (char) (I + x + 1);
                         programCounter += 2;
@@ -341,10 +341,11 @@ public class Chip {
                 System.exit(0);
         }
 
-        if(soundTimer > 0) {
+        if (soundTimer > 0) {
             soundTimer--;
+            Audio.playSound("files/soundfx-beep.wav");
         }
-        if(delayTimer > 0) {
+        if (delayTimer > 0) {
             delayTimer--;
         }
     }
