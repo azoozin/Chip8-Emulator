@@ -65,8 +65,11 @@ public class Chip {
             case 0x0000: // Multi case
                 switch (opcode & 0x00FF) {
                     case 0x00E0:
-                        System.err.println("Unsupported operation code.");
-                        System.exit(0);
+                        for (int i = 0; i < display.length; i++) {
+                            display[i] = 0;
+                        }
+                        programCounter += 2;
+                        needRedraw = true;
                         break;
 
                     case 0x00EE:
@@ -116,6 +119,17 @@ public class Chip {
                 break;
             }
 
+            case 0x5000: {
+                int x = (opcode & 0x0F00) >> 8;
+                int y = (opcode & 0x00F0) >> 4;
+                if (V[x] == V[y]) {
+                    programCounter += 4;
+                } else {
+                    programCounter += 2;
+                }
+                break;
+            }
+
             case 0x6000: {//6XNN: Set VX to NN
                 int x = (opcode & 0x0F00) >> 8;
                 V[x] = (char) (opcode & 0x00FF);
@@ -143,10 +157,26 @@ public class Chip {
                         break;
                     }
 
+                    case 0x0001: {
+                        int x = (opcode & 0x0F00) >> 8;
+                        int y = (opcode & 0x00F0) >> 4;
+                        V[x] = (char) (V[x] | V[y] & 0xFF);
+                        programCounter += 2;
+                        break;
+                    }
+
                     case 0x0002: {
                         int x = (opcode & 0x0F00) >> 8;
                         int y = (opcode & 0x00F0) >> 4;
                         V[x] = (char) (V[x] & V[y]);
+                        programCounter += 2;
+                        break;
+                    }
+
+                    case 0x0003: {
+                        int x = (opcode & 0x0F00) >> 8;
+                        int y = (opcode & 0x00F0) >> 4;
+                        V[x] = (char) ((V[x] ^ V[y]) & 0xFF);
                         programCounter += 2;
                         break;
                     }
@@ -176,7 +206,35 @@ public class Chip {
                         programCounter += 2;
                         break;
                     }
-//                    case 0x0000:
+
+                    case 0x0006: {
+                        int x = (opcode & 0x0F00) >> 8;
+                        V[0xF] = (char) (V[x] & 0x1);
+                        V[x] = (char) (V[x] >> 1);
+                        programCounter += 2;
+                        break;
+                    }
+
+                    case 0x0007: {
+                        int x = (opcode & 0x0F00) >> 8;
+                        int y = (opcode & 0x00F0) >> 4;
+                        if (V[x] > V[y])
+                            V[0xF] = 0;
+                        else
+                            V[0xF] = 1;
+                        V[x] = (char) ((V[y] - V[x]) & 0xFF);
+                        programCounter += 2;
+                        break;
+                    }
+
+                    case 0x000E: {
+                        int x = (opcode & 0x0F00) >> 8;
+                        V[0xF] = (char)(V[x] & 0x80);
+                        V[x] = (char)(V[x] << 1);
+                        programCounter += 2;
+                        break;
+                    }
+
                     default:
                         System.err.println("Unsupported Opcode!");
                         System.exit(0);
@@ -184,10 +242,27 @@ public class Chip {
                 }
                 break;
 
+            case 0x9000: {
+                int x = (opcode & 0x0F00) >> 8;
+                int y = (opcode & 0x00F0) >> 4;
+                if (V[x] != V[y]) {
+                    programCounter += 4;
+                } else {
+                    programCounter += 2;
+                }
+            }
+
             case 0xA000:
                 I = (char) (opcode & 0x0FFF);
                 programCounter += 2;
                 break;
+
+            case 0xB000: {
+                int nnn = opcode & 0x0FFF;
+                int extra = V[0] & 0xFF;
+                programCounter = (char) (nnn + extra);
+                break;
+            }
 
             case 0xC000: {
                 int x = (opcode & 0x0F00) >> 8;
@@ -273,6 +348,18 @@ public class Chip {
 //                        break;
                     }
 
+                    case 0x000A: {
+                        int x = (opcode & 0x0F00) >> 8;
+                        for(int i = 0; i < keys.length; i++) {
+                            if(keys[i] == 1) {
+                                V[x] = (char)i;
+                                programCounter += 2;
+                                break;
+                            }
+                        }
+                        break;
+                    }
+
                     case 0x0015: {
                         int x = (opcode & 0x0F00) >> 8;
                         delayTimer = V[x];
@@ -283,6 +370,13 @@ public class Chip {
                     case 0x0018: {
                         int x = (opcode & 0x0F00) >> 8;
                         soundTimer = V[x];
+                        programCounter += 2;
+                        break;
+                    }
+
+                    case 0x001E: {
+                        int x = (opcode & 0x0F00) >> 8;
+                        I = (char) (I + V[x]);
                         programCounter += 2;
                         break;
                     }
@@ -323,6 +417,15 @@ public class Chip {
 //
 //                        programCounter += 2;
 //                        break;
+                    }
+
+                    case 0x0055: {
+                        int x = (opcode & 0x0F00) >> 8;
+                        for(int i = 0; i <= x; i++) {
+                            memory[I + i] = V[i];
+                        }
+                        programCounter += 2;
+                        break;
                     }
 
                     case 0x065: {
