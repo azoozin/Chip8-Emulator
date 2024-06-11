@@ -211,6 +211,11 @@ public class Chip {
                         if (pixel != 0) {
                             int totalX = x + _x;
                             int totalY = y + _y;
+
+                            // display screen wrapping
+                            totalX = totalX % 64;
+                            totalY = totalY % 32;
+
                             int index = totalY * 64 + totalX;
 
                             if (display[index] == 1) {
